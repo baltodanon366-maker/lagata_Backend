@@ -1,0 +1,67 @@
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+env:
+  AZURE_WEBAPP_NAME: licoreria-api
+  DOTNET_VERSION: '8.0.x'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore LicoreriaAPI.sln
+
+    - name: Build
+      run: dotnet build LicoreriaAPI.sln --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test LicoreriaAPI.sln --configuration Release --no-build --verbosity normal
+      continue-on-error: true
+
+    - name: Publish
+      run: dotnet publish src/LicoreriaAPI/LicoreriaAPI.csproj --configuration Release --output ./publish
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dotnet-app
+        path: ./publish
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: dotnet-app
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: .
+
+

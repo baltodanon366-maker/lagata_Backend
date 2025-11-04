@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  licoreria-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: licoreria-api
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__SqlServerConnection=${SQL_SERVER_CONNECTION}
+      - ConnectionStrings__MongoDBConnection=${MONGODB_CONNECTION}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=${JWT_ISSUER:-LicoreriaAPI}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-LicoreriaAPIUsers}
+      - JwtSettings__ExpirationMinutes=${JWT_EXPIRATION_MINUTES:-60}
+      - MongoDBSettings__DatabaseName=${MONGODB_DATABASE_NAME:-LicoreriaMongoDB}
+    restart: unless-stopped
+    networks:
+      - licoreria-network
+
+networks:
+  licoreria-network:
+    driver: bridge
+
+
