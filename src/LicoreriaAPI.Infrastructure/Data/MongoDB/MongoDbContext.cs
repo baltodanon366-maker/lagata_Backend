@@ -12,11 +12,13 @@ public class MongoDbContext
         _database = mongoClient.GetDatabase(settings.DatabaseName);
     }
 
-    // Aquí se agregarán las colecciones de MongoDB
-    // Ejemplo: public IMongoCollection<T> GetCollection<T>(string collectionName)
-    // {
-    //     return _database.GetCollection<T>(collectionName);
-    // }
+    /// <summary>
+    /// Obtiene una colección de MongoDB por nombre
+    /// </summary>
+    public IMongoCollection<T> GetCollection<T>(string collectionName)
+    {
+        return _database.GetCollection<T>(collectionName);
+    }
 
     public IMongoDatabase Database => _database;
 }

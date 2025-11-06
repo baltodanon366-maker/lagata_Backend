@@ -21,10 +21,17 @@ public class Usuario : BaseEntity
     [MaxLength(100)]
     public string? NombreCompleto { get; set; }
 
-    public string? Rol { get; set; }
+    public string? Rol { get; set; } // Mantener por compatibilidad, pero usar RolesPermisos
 
-    // Relaciones con otras entidades (se agregarán cuando se creen)
-    // public virtual ICollection<Venta> Ventas { get; set; }
+    public DateTime? UltimoAcceso { get; set; }
+
+    // Relaciones
+    public virtual ICollection<UsuarioRol> UsuariosRoles { get; set; } = new List<UsuarioRol>();
+    public virtual ICollection<Venta> Ventas { get; set; } = new List<Venta>();
+    public virtual ICollection<Compra> Compras { get; set; } = new List<Compra>();
+    public virtual ICollection<DevolucionVenta> DevolucionesVenta { get; set; } = new List<DevolucionVenta>();
+    public virtual ICollection<MovimientoStock> MovimientosStock { get; set; } = new List<MovimientoStock>();
+    public virtual Empleado? Empleado { get; set; }
 }
 
 

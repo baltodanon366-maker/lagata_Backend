@@ -1,19 +1,26 @@
-# Licoreria API
+# 🍾 Licoreria API - Sistema de Facturación
 
 API transaccional de facturación para una licorería desarrollada en .NET 8 con arquitectura escalable y mantenible.
 
 ## 📋 Descripción
 
-Esta API utiliza una arquitectura de capas (Clean Architecture) para separar responsabilidades y facilitar el mantenimiento y escalabilidad del código. El sistema utiliza dos bases de datos:
+Esta API utiliza una arquitectura de capas (Clean Architecture) para separar responsabilidades y facilitar el mantenimiento y escalabilidad del código. El sistema utiliza **tres bases de datos** especializadas:
 
-- **SQL Server**: Para operaciones transaccionales críticas:
+- **SQL Server (Operacional)**: Para operaciones transaccionales críticas:
   - Autenticación y seguridad (Login, JWT)
-  - Catálogos (Productos, Categorías, etc.)
-  - Procesos de compras
-  - Procesos de ventas
-  - Devoluciones de ventas
+  - Catálogos (Productos, Categorías, Marcas, Modelos, Clientes, Proveedores, Empleados)
+  - Procesos de compras, ventas y devoluciones
+  - Gestión de inventario y stock
 
-- **MongoDB**: Para datos adicionales y flexibles (pendiente de definir casos de uso específicos)
+- **Data Warehouse (Analytics)**: Para consultas analíticas y reportes:
+  - Métricas y KPIs para dashboard móvil
+  - Reportes de ventas, compras e inventario
+  - Análisis de tendencias y productos más vendidos
+
+- **MongoDB**: Para funcionalidades flexibles:
+  - Notificaciones en tiempo real
+  - Logs de auditoría y sistema
+  - Metadatos de documentos
 
 ## 🏗️ Arquitectura del Proyecto
 
@@ -108,10 +115,38 @@ LicoreriaAPI/
 
 ## 📚 Documentación de Swagger
 
-La API está documentada con Swagger/OpenAPI. Los endpoints están organizados por tags que indican la base de datos utilizada:
+La API está completamente documentada con Swagger/OpenAPI. Los endpoints están organizados por tags que indican la base de datos utilizada:
 
-- **🔐 Autenticación - SQL Server**: Endpoints de login y seguridad
-- **🍃 MongoDB - Operaciones**: Endpoints que utilizan MongoDB
+- **🔐 Autenticación - SQL Server**: Login, registro, gestión de usuarios
+- **📦 Catálogos - SQL Server**: Productos, categorías, marcas, modelos, clientes, proveedores, empleados
+- **🛒 Transacciones - SQL Server**: Compras, ventas, devoluciones
+- **📊 Analytics (Data Warehouse)**: Métricas, reportes, dashboard
+- **🍃 Funcionalidades (MongoDB)**: Notificaciones, logs, documentos
+
+Accede a la documentación interactiva en: `https://tu-api-url/swagger` o `http://localhost:5000`
+
+## 📊 Endpoints Disponibles
+
+**Total: 122 endpoints implementados**
+
+- ✅ **Seguridad**: 5 endpoints (login, registro, cambio de contraseña, permisos)
+- ✅ **Catálogos**: 80 endpoints (8 tipos × 10 operaciones cada uno)
+- ✅ **Transacciones**: 9 endpoints (compras, ventas, devoluciones)
+- ✅ **Analytics**: 18 endpoints (métricas, reportes, dashboard)
+- ✅ **MongoDB**: 10 endpoints (notificaciones, logs, documentos)
+
+## 🔧 Scripts de Base de Datos
+
+El proyecto incluye scripts SQL para:
+
+- **Crear tablas operacionales**: `scripts/database/CreateTables.sql`
+- **Crear Data Warehouse**: `scripts/database/CreateDataWarehouse.sql`
+- **Crear Stored Procedures**: 
+  - `scripts/database/CreateStoredProcedures.sql` (Catálogos y Seguridad)
+  - `scripts/database/CreateStoredProcedures_Transacciones.sql` (Compras, Ventas, Devoluciones)
+  - `scripts/database/CreateStoredProcedures_DataWarehouse.sql` (Analytics)
+- **Datos de prueba**: `scripts/database/InsertTestData.sql`
+- **MongoDB**: Ver `SCRIPTS_MONGODB_COLECCIONES.md` para scripts de colecciones
 
 ### Autenticación JWT
 
@@ -123,37 +158,30 @@ Para usar endpoints protegidos:
    Authorization: Bearer {tu_token}
    ```
 
-## 📁 Estructura de Carpetas por Módulo
-
-### SQL Server (Transaccional)
-- **Autenticación**: `Controllers/AuthController.cs`
-- **Catálogos**: (Por implementar)
-- **Compras**: (Por implementar)
-- **Ventas**: (Por implementar)
-- **Devoluciones**: (Por implementar)
-
-### MongoDB
-- **Operaciones MongoDB**: `Controllers/MongoDBController.cs` (ejemplo)
-
 ## 🔐 Seguridad
 
-- Autenticación basada en JWT
-- Validación de tokens en endpoints protegidos
-- Configuración de CORS
-- Cifrado de contraseñas (pendiente de implementar BCrypt)
+- ✅ Autenticación basada en JWT con tokens expirables
+- ✅ Validación de tokens en endpoints protegidos
+- ✅ Configuración de CORS habilitada
+- ✅ Cifrado de contraseñas con BCrypt
+- ✅ Sistema de roles y permisos (Administrador, Vendedor, Supervisor)
 
-## 📝 Próximos Pasos
+## 📝 Estado del Proyecto
 
-1. ✅ Estructura base del proyecto
-2. ✅ Configuración de bases de datos
-3. ✅ Configuración de JWT
-4. ✅ Swagger documentado
-5. ⏳ Crear tablas en SQL Server (Usuarios, Catálogos, etc.)
-6. ⏳ Implementar autenticación completa
-7. ⏳ Crear modelos y servicios para catálogos
-8. ⏳ Implementar procesos de compras y ventas
-9. ⏳ Implementar devoluciones
-10. ⏳ Definir y implementar casos de uso para MongoDB
+✅ **Completado:**
+- Estructura base del proyecto
+- Configuración de 3 bases de datos (SQL Server, Data Warehouse, MongoDB)
+- Configuración de JWT con BCrypt
+- Swagger completamente documentado
+- 122 endpoints implementados y funcionando
+- Scripts SQL para crear tablas, stored procedures y datos de prueba
+- Stored procedures para todas las operaciones
+- Sistema de actualización automática de stock
+- Integración con Data Warehouse para analytics
+
+## 📖 Documentación Adicional
+
+- **MongoDB**: Ver `SCRIPTS_MONGODB_COLECCIONES.md` para scripts de creación de colecciones e índices
 
 ## 👥 Contribución
 
