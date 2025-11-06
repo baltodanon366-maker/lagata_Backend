@@ -7,8 +7,12 @@ param(
 )
 
 $sqlConnectionString = "Server=tcp:sqlserverjuan123.database.windows.net,1433;Database=dbLicoreriaLaGata;User ID=adminjuan;Password=LicoreriaLaGata2025!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+$dataWarehouseConnectionString = "Server=tcp:sqlserverjuan123.database.windows.net,1433;Database=dbLicoreriaDW;User ID=adminjuan;Password=LicoreriaLaGata2025!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 
 Write-Host "Configurando App Settings correctamente..." -ForegroundColor Green
+Write-Host "Resource Group: $ResourceGroup" -ForegroundColor Cyan
+Write-Host "Web App: $WebAppName" -ForegroundColor Cyan
+Write-Host ""
 
 # Configurar cada setting individualmente para asegurar que se guarde
 Write-Host "`nConfigurando puerto..." -ForegroundColor Yellow
@@ -53,13 +57,19 @@ az webapp config appsettings set `
     --name $WebAppName `
     --settings MongoDBSettings__DatabaseName="LicoreriaMongoDB"
 
-Write-Host "Configurando SQL Connection String..." -ForegroundColor Yellow
+Write-Host "Configurando SQL Connection String (App Setting)..." -ForegroundColor Yellow
 az webapp config appsettings set `
     --resource-group $ResourceGroup `
     --name $WebAppName `
     --settings ConnectionStrings__SqlServerConnection="$sqlConnectionString"
 
-# Configurar Connection String como Connection String (no como App Setting)
+Write-Host "Configurando Data Warehouse Connection String..." -ForegroundColor Yellow
+az webapp config appsettings set `
+    --resource-group $ResourceGroup `
+    --name $WebAppName `
+    --settings ConnectionStrings__DataWarehouseConnection="$dataWarehouseConnectionString"
+
+# Configurar Connection String como Connection String (no como App Setting) - Opcional pero recomendado
 Write-Host "`nConfigurando SQL Connection String (tipo SQLServer)..." -ForegroundColor Yellow
 az webapp config connection-string set `
     --resource-group $ResourceGroup `
@@ -71,7 +81,7 @@ Write-Host "`nVerificando configuracion..." -ForegroundColor Yellow
 az webapp config appsettings list `
     --resource-group $ResourceGroup `
     --name $WebAppName `
-    --query "[?name=='ASPNETCORE_URLS' || name=='JwtSettings__SecretKey' || name=='ConnectionStrings__SqlServerConnection']" `
+    --query "[?name=='ASPNETCORE_URLS' || name=='JwtSettings__SecretKey' || name=='ConnectionStrings__SqlServerConnection' || name=='ConnectionStrings__DataWarehouseConnection']" `
     --output table
 
 Write-Host "`nOK: Configuracion completada!" -ForegroundColor Green

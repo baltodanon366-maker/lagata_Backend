@@ -11,7 +11,7 @@ on:
       - master
 
 env:
-  AZURE_WEBAPP_NAME: licoreria-api
+  AZURE_WEBAPP_NAME: api-lagata
   DOTNET_VERSION: '8.0.x'
 
 jobs:
