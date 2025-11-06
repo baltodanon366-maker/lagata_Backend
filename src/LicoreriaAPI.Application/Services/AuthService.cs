@@ -39,20 +39,37 @@ public class AuthService : IAuthService
     {
         try
         {
+            _logger.LogInformation("Intento de login para usuario: {NombreUsuario}", loginRequest.NombreUsuario);
+
             // Obtener el usuario para verificar el hash
             var usuario = await _context.Usuarios
                 .FirstOrDefaultAsync(u => u.NombreUsuario == loginRequest.NombreUsuario && u.Activo);
 
             if (usuario == null)
             {
+                _logger.LogWarning("Usuario no encontrado o inactivo: {NombreUsuario}", loginRequest.NombreUsuario);
                 return null;
             }
 
+            _logger.LogDebug("Usuario encontrado. Verificando contraseña...");
+
             // Verificar contraseña usando BCrypt
-            if (!VerifyPassword(loginRequest.Password, usuario.PasswordHash))
+            var passwordValid = VerifyPassword(loginRequest.Password, usuario.PasswordHash);
+            
+            if (!passwordValid)
             {
+                _logger.LogWarning("Contraseña inválida para usuario: {NombreUsuario}", loginRequest.NombreUsuario);
+                if (!string.IsNullOrEmpty(usuario.PasswordHash))
+                {
+                    var hashPreview = usuario.PasswordHash.Length > 30 
+                        ? usuario.PasswordHash.Substring(0, 30) 
+                        : usuario.PasswordHash;
+                    _logger.LogDebug("Hash almacenado (primeros 30 chars): {HashPreview}", hashPreview);
+                }
                 return null;
             }
+
+            _logger.LogDebug("Contraseña válida. Actualizando último acceso...");
 
             // Llamar al stored procedure para actualizar último acceso
             // El stored procedure espera el password hash para validación, pero ya verificamos arriba
@@ -63,9 +80,13 @@ public class AuthService : IAuthService
                 "EXEC sp_Usuario_Login @NombreUsuario, @PasswordHash",
                 nombreUsuarioParam, passwordHashParam);
 
+            _logger.LogDebug("Generando token JWT...");
+
             // Generar token JWT con el ID del usuario en los claims
             var token = await GenerateTokenAsync(usuario.Id, usuario.NombreUsuario, usuario.Rol ?? "Usuario");
             
+            _logger.LogInformation("Login exitoso para usuario: {NombreUsuario}", loginRequest.NombreUsuario);
+
             return new LoginResponseDto
             {
                 Token = token,
@@ -76,7 +97,9 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error en LoginAsync para usuario: {NombreUsuario}", loginRequest.NombreUsuario);
+            _logger.LogError(ex, "Error en LoginAsync para usuario: {NombreUsuario}. Error: {ErrorMessage}", 
+                loginRequest.NombreUsuario, ex.Message);
+            _logger.LogError("Stack trace: {StackTrace}", ex.StackTrace);
             return null;
         }
     }
@@ -249,10 +272,33 @@ public class AuthService : IAuthService
     {
         try
         {
-            return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+            if (string.IsNullOrEmpty(passwordHash))
+            {
+                _logger.LogWarning("PasswordHash está vacío o nulo");
+                return false;
+            }
+
+            if (passwordHash.StartsWith("PLACEHOLDER_"))
+            {
+                _logger.LogWarning("PasswordHash es un placeholder, necesita actualización");
+                return false;
+            }
+
+            var result = BCrypt.Net.BCrypt.Verify(password, passwordHash);
+            
+            if (!result)
+            {
+                var hashPreview = passwordHash.Length > 30 
+                    ? passwordHash.Substring(0, 30) 
+                    : passwordHash;
+                _logger.LogDebug("BCrypt.Verify retornó false. Hash preview: {HashPreview}", hashPreview);
+            }
+
+            return result;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error al verificar contraseña con BCrypt. Error: {ErrorMessage}", ex.Message);
             return false;
         }
     }
