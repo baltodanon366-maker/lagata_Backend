@@ -45,17 +45,14 @@ builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IDocumen
 var app = builder.Build();
 
 // Configurar el pipeline HTTP
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+// Swagger siempre habilitado (también en producción para facilitar pruebas)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Licoreria API V1");
-        c.RoutePrefix = string.Empty; // Swagger UI en la raíz
-        // En producción, puedes deshabilitar Swagger UI comentando las líneas anteriores
-        // o configurando un acceso restringido
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Licoreria API V1");
+    c.RoutePrefix = string.Empty; // Swagger UI en la raíz (/) en lugar de /swagger
+    c.DisplayRequestDuration();
+});
 
 app.UseHttpsRedirection();
 
