@@ -41,9 +41,7 @@ builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IAnalyti
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.INotificationService, LicoreriaAPI.Application.Services.NotificationService>();
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.ILogService, LicoreriaAPI.Application.Services.LogService>();
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IDocumentService, LicoreriaAPI.Application.Services.DocumentService>();
-
 var app = builder.Build();
-
 // Configurar el pipeline HTTP
 // Swagger siempre habilitado (también en producción para facilitar pruebas)
 app.UseSwagger();
@@ -53,14 +51,9 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty; // Swagger UI en la raíz (/) en lugar de /swagger
     c.DisplayRequestDuration();
 });
-
 app.UseHttpsRedirection();
-
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

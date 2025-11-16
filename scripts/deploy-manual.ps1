@@ -3,7 +3,7 @@
 
 param(
     [string]$WebAppName = "api-lagata",
-    [string]$ResourceGroup = "RG Licoreria",
+    [string]$ResourceGroup = "la_gata_2",
     [string]$Configuration = "Release"
 )
 
