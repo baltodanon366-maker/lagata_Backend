@@ -1,12 +1,15 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using LicoreriaAPI.Application.Interfaces.Services;
+using LicoreriaAPI.Domain.Interfaces;
 using LicoreriaAPI.DTOs.Auth;
 using LicoreriaAPI.Domain.Models;
+using LicoreriaAPI.Domain.Models.MongoDB;
 using LicoreriaAPI.Infrastructure.Configuration;
 using LicoreriaAPI.Infrastructure.Data.SqlServer;
 using Microsoft.EntityFrameworkCore;
@@ -24,15 +27,21 @@ public class AuthService : IAuthService
     private readonly LicoreriaDbContext _context;
     private readonly JwtSettings _jwtSettings;
     private readonly ILogger<AuthService> _logger;
+    private readonly IFailedLoginAttemptRepository? _failedLoginRepository;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
 
     public AuthService(
         LicoreriaDbContext context, 
         IOptions<JwtSettings> jwtSettings,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IFailedLoginAttemptRepository? failedLoginRepository = null,
+        IHttpContextAccessor? httpContextAccessor = null)
     {
         _context = context;
         _jwtSettings = jwtSettings.Value;
         _logger = logger;
+        _failedLoginRepository = failedLoginRepository;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest)
@@ -48,6 +57,7 @@ public class AuthService : IAuthService
             if (usuario == null)
             {
                 _logger.LogWarning("Usuario no encontrado o inactivo: {NombreUsuario}", loginRequest.NombreUsuario);
+                await RecordFailedLoginAttemptAsync(loginRequest.NombreUsuario, "UserNotFound");
                 return null;
             }
 
@@ -66,6 +76,7 @@ public class AuthService : IAuthService
                         : usuario.PasswordHash;
                     _logger.LogDebug("Hash almacenado (primeros 30 chars): {HashPreview}", hashPreview);
                 }
+                await RecordFailedLoginAttemptAsync(loginRequest.NombreUsuario, "InvalidPassword");
                 return null;
             }
 
@@ -300,6 +311,40 @@ public class AuthService : IAuthService
         {
             _logger.LogError(ex, "Error al verificar contraseña con BCrypt. Error: {ErrorMessage}", ex.Message);
             return false;
+        }
+    }
+
+    private async Task RecordFailedLoginAttemptAsync(string username, string failureReason)
+    {
+        if (_failedLoginRepository == null || _httpContextAccessor?.HttpContext == null)
+            return;
+
+        try
+        {
+            var httpContext = _httpContextAccessor.HttpContext;
+            var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+            var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
+
+            // Verificar si hay múltiples intentos desde la misma IP
+            var recentAttempts = await _failedLoginRepository.GetAttemptCountByIpAsync(ipAddress, DateTime.UtcNow.AddMinutes(5));
+            var isSuspicious = recentAttempts >= 3;
+
+            var metric = new FailedLoginAttemptMetric
+            {
+                Username = username,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                FailureReason = failureReason,
+                IsSuspicious = isSuspicious,
+                AttemptCount = recentAttempts + 1,
+                Timestamp = DateTime.UtcNow
+            };
+
+            await _failedLoginRepository.AddAsync(metric);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al registrar intento fallido de login");
         }
     }
 }

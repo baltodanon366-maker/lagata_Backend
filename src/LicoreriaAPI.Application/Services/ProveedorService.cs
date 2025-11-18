@@ -170,11 +170,18 @@ public class ProveedorService : IProveedorService
     {
         try
         {
+            // Primero intentar buscar activo
             var proveedorIdParam = new SqlParameter("@ProveedorId", id);
-
             var proveedor = await _context.Proveedores
                 .FromSqlRaw("EXEC sp_Proveedor_MostrarActivosPorId @ProveedorId", proveedorIdParam)
                 .FirstOrDefaultAsync();
+
+            // Si no está activo, buscar sin importar el estado
+            if (proveedor == null)
+            {
+                proveedor = await _context.Proveedores
+                    .FirstOrDefaultAsync(p => p.Id == id);
+            }
 
             if (proveedor == null) return null;
 

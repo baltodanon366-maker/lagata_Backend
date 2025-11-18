@@ -41,6 +41,19 @@ public class LicoreriaDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Compras y Ventas no tienen columna Activo en la base de datos
+        // Ignorar la propiedad Activo heredada de BaseEntity
+        modelBuilder.Entity<Compra>()
+            .Ignore(c => c.Activo);
+        
+        modelBuilder.Entity<Venta>()
+            .Ignore(v => v.Activo);
+
+        // Mapear nombres de tablas correctamente
+        // La tabla en la BD es "DetalleProducto" (singular), pero el DbSet es "DetallesProducto" (plural)
+        modelBuilder.Entity<DetalleProducto>()
+            .ToTable("DetalleProducto");
+
         // Configuraciones de entidades se agregarán aquí
         // modelBuilder.ApplyConfigurationsFromAssembly(typeof(LicoreriaDbContext).Assembly);
     }

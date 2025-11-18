@@ -9,16 +9,16 @@ public interface IAnalyticsService
 {
     // Ventas
     Task<List<VentasPorRangoFechasDto>> VentasPorRangoFechasAsync(DateTime fechaInicio, DateTime fechaFin, string agruparPor = "Dia");
-    Task<List<VentasPorProductoDto>> VentasPorProductoAsync(DateTime? fechaInicio, DateTime? fechaFin, int top = 20);
-    Task<List<VentasPorCategoriaDto>> VentasPorCategoriaAsync(DateTime? fechaInicio, DateTime? fechaFin);
-    Task<List<VentasPorClienteDto>> VentasPorClienteAsync(DateTime? fechaInicio, DateTime? fechaFin, int top = 20);
-    Task<List<VentasPorEmpleadoDto>> VentasPorEmpleadoAsync(DateTime? fechaInicio, DateTime? fechaFin);
-    Task<List<VentasPorMetodoPagoDto>> VentasPorMetodoPagoAsync(DateTime? fechaInicio, DateTime? fechaFin);
+    Task<List<VentasPorProductoDto>> VentasPorProductoAsync(int? productoId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null, int top = 20);
+    Task<List<VentasPorCategoriaDto>> VentasPorCategoriaAsync(int? categoriaId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null);
+    Task<List<VentasPorClienteDto>> VentasPorClienteAsync(int? clienteId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null, int top = 20);
+    Task<List<VentasPorEmpleadoDto>> VentasPorEmpleadoAsync(int? empleadoId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null);
+    Task<List<VentasPorMetodoPagoDto>> VentasPorMetodoPagoAsync(DateTime? fechaInicio = null, DateTime? fechaFin = null);
 
     // Compras
     Task<List<ComprasPorRangoFechasDto>> ComprasPorRangoFechasAsync(DateTime fechaInicio, DateTime fechaFin, string agruparPor = "Dia");
-    Task<List<ComprasPorProveedorDto>> ComprasPorProveedorAsync(DateTime? fechaInicio, DateTime? fechaFin, int top = 20);
-    Task<List<ComprasPorProductoDto>> ComprasPorProductoAsync(DateTime? fechaInicio, DateTime? fechaFin, int top = 20);
+    Task<List<ComprasPorProveedorDto>> ComprasPorProveedorAsync(int? proveedorId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null, int top = 20);
+    Task<List<ComprasPorProductoDto>> ComprasPorProductoAsync(int? productoId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null, int top = 20);
 
     // Inventario
     Task<List<StockActualDto>> InventarioStockActualAsync(bool incluirInactivos = false, int? top = null);

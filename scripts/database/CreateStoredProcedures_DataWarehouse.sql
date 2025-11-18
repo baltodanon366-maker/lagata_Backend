@@ -100,6 +100,7 @@ IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DW_
 GO
 
 CREATE PROCEDURE [dbo].[sp_DW_Ventas_PorProducto]
+    @ProductoId INT = NULL,
     @FechaInicio DATE = NULL,
     @FechaFin DATE = NULL,
     @Top INT = 20
@@ -128,6 +129,7 @@ BEGIN
     INNER JOIN [DimMarca] m ON dp.[MarcaId] = m.[Id]
     INNER JOIN [DimTiempo] t ON hv.[FechaId] = t.[Id]
     WHERE t.[Fecha] BETWEEN @FechaInicio AND @FechaFin
+        AND (@ProductoId IS NULL OR dp.[Id] = @ProductoId)
     GROUP BY dp.[Id], dp.[ProductoNombre], dp.[ProductoCodigo], cat.[CategoriaNombre], m.[MarcaNombre]
     ORDER BY SUM(hv.[TotalVentas]) DESC;
 END
@@ -139,6 +141,7 @@ IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DW_
 GO
 
 CREATE PROCEDURE [dbo].[sp_DW_Ventas_PorCategoria]
+    @CategoriaId INT = NULL,
     @FechaInicio DATE = NULL,
     @FechaFin DATE = NULL
 AS
@@ -163,6 +166,7 @@ BEGIN
     INNER JOIN [DimCategoria] cat ON dp.[CategoriaId] = cat.[Id]
     INNER JOIN [DimTiempo] t ON hv.[FechaId] = t.[Id]
     WHERE t.[Fecha] BETWEEN @FechaInicio AND @FechaFin
+        AND (@CategoriaId IS NULL OR cat.[Id] = @CategoriaId)
     GROUP BY cat.[Id], cat.[CategoriaNombre]
     ORDER BY SUM(hv.[TotalVentas]) DESC;
 END
@@ -174,6 +178,7 @@ IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DW_
 GO
 
 CREATE PROCEDURE [dbo].[sp_DW_Ventas_PorCliente]
+    @ClienteId INT = NULL,
     @FechaInicio DATE = NULL,
     @FechaFin DATE = NULL,
     @Top INT = 20
@@ -199,6 +204,7 @@ BEGIN
     INNER JOIN [DimTiempo] t ON hv.[FechaId] = t.[Id]
     WHERE t.[Fecha] BETWEEN @FechaInicio AND @FechaFin
       AND c.[Id] IS NOT NULL -- Solo clientes registrados
+      AND (@ClienteId IS NULL OR c.[Id] = @ClienteId)
     GROUP BY c.[Id], c.[ClienteNombre], c.[ClienteCodigo]
     ORDER BY SUM(hv.[TotalVentas]) DESC;
 END
@@ -210,6 +216,7 @@ IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DW_
 GO
 
 CREATE PROCEDURE [dbo].[sp_DW_Ventas_PorEmpleado]
+    @EmpleadoId INT = NULL,
     @FechaInicio DATE = NULL,
     @FechaFin DATE = NULL
 AS
@@ -236,6 +243,7 @@ BEGIN
     INNER JOIN [DimTiempo] t ON hv.[FechaId] = t.[Id]
     WHERE t.[Fecha] BETWEEN @FechaInicio AND @FechaFin
       AND e.[Id] IS NOT NULL
+      AND (@EmpleadoId IS NULL OR e.[Id] = @EmpleadoId)
     GROUP BY e.[Id], e.[EmpleadoNombre], e.[EmpleadoCodigo], e.[Departamento], e.[Puesto]
     ORDER BY SUM(hv.[TotalVentas]) DESC;
 END
@@ -331,6 +339,7 @@ IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DW_
 GO
 
 CREATE PROCEDURE [dbo].[sp_DW_Compras_PorProveedor]
+    @ProveedorId INT = NULL,
     @FechaInicio DATE = NULL,
     @FechaFin DATE = NULL,
     @Top INT = 20
@@ -355,6 +364,7 @@ BEGIN
     INNER JOIN [DimProveedor] prov ON hc.[ProveedorId] = prov.[Id]
     INNER JOIN [DimTiempo] t ON hc.[FechaId] = t.[Id]
     WHERE t.[Fecha] BETWEEN @FechaInicio AND @FechaFin
+        AND (@ProveedorId IS NULL OR prov.[Id] = @ProveedorId)
     GROUP BY prov.[Id], prov.[ProveedorNombre], prov.[ProveedorCodigo]
     ORDER BY SUM(hc.[TotalCompras]) DESC;
 END
@@ -366,6 +376,7 @@ IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DW_
 GO
 
 CREATE PROCEDURE [dbo].[sp_DW_Compras_PorProducto]
+    @ProductoId INT = NULL,
     @FechaInicio DATE = NULL,
     @FechaFin DATE = NULL,
     @Top INT = 20
@@ -394,6 +405,7 @@ BEGIN
     INNER JOIN [DimMarca] m ON dp.[MarcaId] = m.[Id]
     INNER JOIN [DimTiempo] t ON hc.[FechaId] = t.[Id]
     WHERE t.[Fecha] BETWEEN @FechaInicio AND @FechaFin
+        AND (@ProductoId IS NULL OR dp.[Id] = @ProductoId)
     GROUP BY dp.[Id], dp.[ProductoNombre], dp.[ProductoCodigo], cat.[CategoriaNombre], m.[MarcaNombre]
     ORDER BY SUM(hc.[TotalCompras]) DESC;
 END

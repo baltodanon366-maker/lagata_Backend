@@ -12,6 +12,12 @@ builder.Services.ConfigureSqlServer(builder.Configuration);
 builder.Services.ConfigureMongoDB(builder.Configuration);
 builder.Services.ConfigureDataWarehouse(builder.Configuration);
 
+// Configurar repositorios de métricas
+builder.Services.ConfigureMetricsRepositories();
+
+// HttpContextAccessor para AuthService
+builder.Services.AddHttpContextAccessor();
+
 // Configurar autenticación JWT
 builder.Services.ConfigureJwtAuthentication(builder.Configuration);
 
@@ -26,6 +32,7 @@ builder.Services.ConfigureCors();
 
 // Agregar servicios de la aplicación
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IAuthService, LicoreriaAPI.Application.Services.AuthService>();
+builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IUsuarioService, LicoreriaAPI.Application.Services.UsuarioService>();
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.ICategoriaService, LicoreriaAPI.Application.Services.CategoriaService>();
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IMarcaService, LicoreriaAPI.Application.Services.MarcaService>();
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IModeloService, LicoreriaAPI.Application.Services.ModeloService>();
@@ -38,9 +45,6 @@ builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.ICompraS
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IVentaService, LicoreriaAPI.Application.Services.VentaService>();
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IDevolucionVentaService, LicoreriaAPI.Application.Services.DevolucionVentaService>();
 builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IAnalyticsService, LicoreriaAPI.Application.Services.AnalyticsService>();
-builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.INotificationService, LicoreriaAPI.Application.Services.NotificationService>();
-builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.ILogService, LicoreriaAPI.Application.Services.LogService>();
-builder.Services.AddScoped<LicoreriaAPI.Application.Interfaces.Services.IDocumentService, LicoreriaAPI.Application.Services.DocumentService>();
 var app = builder.Build();
 // Configurar el pipeline HTTP
 // Swagger siempre habilitado (también en producción para facilitar pruebas)
@@ -53,6 +57,11 @@ app.UseSwaggerUI(c =>
 });
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+
+// Middlewares de métricas (antes de autenticación para capturar todo)
+app.UseMiddleware<LicoreriaAPI.Middleware.NetworkUsageMiddleware>();
+app.UseMiddleware<LicoreriaAPI.Middleware.ActiveUserMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -79,6 +79,9 @@ public class VentaService : IVentaService
     {
         try
         {
+            _logger.LogInformation("Obteniendo venta con ID: {VentaId}", ventaId);
+
+            // Usar consulta directa con Include para evitar problemas de mapeo
             var venta = await _context.Ventas
                 .Include(v => v.Cliente)
                 .Include(v => v.Usuario)
@@ -94,7 +97,13 @@ public class VentaService : IVentaService
                         .ThenInclude(dp => dp.Categoria)
                 .FirstOrDefaultAsync(v => v.Id == ventaId);
 
-            if (venta == null) return null;
+            if (venta == null)
+            {
+                _logger.LogWarning("Venta con ID {VentaId} no encontrada", ventaId);
+                return null;
+            }
+
+            _logger.LogInformation("Venta encontrada: ID={Id}, Folio={Folio}", venta.Id, venta.Folio);
 
             return new VentaDto
             {
@@ -103,7 +112,7 @@ public class VentaService : IVentaService
                 ClienteId = venta.ClienteId,
                 ClienteNombre = venta.Cliente?.NombreCompleto,
                 UsuarioId = venta.UsuarioId,
-                UsuarioNombre = venta.Usuario.NombreUsuario,
+                UsuarioNombre = venta.Usuario?.NombreUsuario,
                 EmpleadoId = venta.EmpleadoId,
                 EmpleadoNombre = venta.Empleado?.NombreCompleto,
                 FechaVenta = venta.FechaVenta,
@@ -121,10 +130,10 @@ public class VentaService : IVentaService
                     Id = vd.Id,
                     VentaId = vd.VentaId,
                     DetalleProductoId = vd.DetalleProductoId,
-                    ProductoCodigo = vd.DetalleProducto.Codigo,
-                    ProductoNombre = vd.DetalleProducto.Producto.Nombre,
-                    MarcaNombre = vd.DetalleProducto.Marca.Nombre,
-                    CategoriaNombre = vd.DetalleProducto.Categoria.Nombre,
+                    ProductoCodigo = vd.DetalleProducto?.Codigo,
+                    ProductoNombre = vd.DetalleProducto?.Producto?.Nombre,
+                    MarcaNombre = vd.DetalleProducto?.Marca?.Nombre,
+                    CategoriaNombre = vd.DetalleProducto?.Categoria?.Nombre,
                     Cantidad = vd.Cantidad,
                     PrecioUnitario = vd.PrecioUnitario,
                     Descuento = vd.Descuento,
@@ -135,6 +144,7 @@ public class VentaService : IVentaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener venta ID: {VentaId}", ventaId);
+            _logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
             return null;
         }
     }
@@ -185,6 +195,86 @@ public class VentaService : IVentaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener ventas por rango de fechas");
+            return new List<VentaDto>();
+        }
+    }
+
+    public async Task<List<VentaDto>> MostrarActivasAsync(int top = 100)
+    {
+        try
+        {
+            _logger.LogInformation("Ejecutando MostrarActivasAsync con Top={Top}", top);
+
+            // Verificar si hay ventas con estado 'Completada'
+            var hayCompletadas = await _context.Ventas.AnyAsync(v => v.Estado == "Completada");
+            _logger.LogInformation("Hay ventas completadas: {HayCompletadas}", hayCompletadas);
+
+            // Usar consulta directa con Include para evitar problemas de mapeo
+            var ventas = await _context.Ventas
+                .Include(v => v.Cliente)
+                .Include(v => v.Usuario)
+                .Include(v => v.Empleado)
+                .Include(v => v.VentasDetalle)
+                    .ThenInclude(vd => vd.DetalleProducto)
+                        .ThenInclude(dp => dp.Producto)
+                .Include(v => v.VentasDetalle)
+                    .ThenInclude(vd => vd.DetalleProducto)
+                        .ThenInclude(dp => dp.Marca)
+                .Include(v => v.VentasDetalle)
+                    .ThenInclude(vd => vd.DetalleProducto)
+                        .ThenInclude(dp => dp.Categoria)
+                .Where(v => hayCompletadas ? v.Estado == "Completada" : true)
+                .OrderByDescending(v => v.FechaVenta)
+                .Take(top)
+                .ToListAsync();
+
+            _logger.LogInformation("Consulta directa devolvió {Count} ventas", ventas.Count);
+
+            _logger.LogInformation("Mapeando {Count} ventas a DTOs", ventas.Count);
+
+            var ventasDto = ventas.Select(v => new VentaDto
+            {
+                Id = v.Id,
+                Folio = v.Folio,
+                ClienteId = v.ClienteId,
+                ClienteNombre = v.Cliente?.NombreCompleto,
+                UsuarioId = v.UsuarioId,
+                UsuarioNombre = v.Usuario?.NombreUsuario,
+                EmpleadoId = v.EmpleadoId,
+                EmpleadoNombre = v.Empleado?.NombreCompleto,
+                FechaVenta = v.FechaVenta,
+                Subtotal = v.Subtotal,
+                Impuestos = v.Impuestos,
+                Descuento = v.Descuento,
+                Total = v.Total,
+                MetodoPago = v.MetodoPago,
+                Estado = v.Estado,
+                Observaciones = v.Observaciones,
+                FechaCreacion = v.FechaCreacion,
+                FechaModificacion = v.FechaModificacion,
+                Detalles = v.VentasDetalle.Select(vd => new VentaDetalleDto
+                {
+                    Id = vd.Id,
+                    VentaId = vd.VentaId,
+                    DetalleProductoId = vd.DetalleProductoId,
+                    ProductoCodigo = vd.DetalleProducto?.Codigo,
+                    ProductoNombre = vd.DetalleProducto?.Producto?.Nombre,
+                    MarcaNombre = vd.DetalleProducto?.Marca?.Nombre,
+                    CategoriaNombre = vd.DetalleProducto?.Categoria?.Nombre,
+                    Cantidad = vd.Cantidad,
+                    PrecioUnitario = vd.PrecioUnitario,
+                    Descuento = vd.Descuento,
+                    Subtotal = vd.Subtotal
+                }).ToList()
+            }).ToList();
+
+            _logger.LogInformation("Se obtuvieron {Count} ventas activas con detalles", ventasDto.Count);
+            return ventasDto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener ventas activas: {Message}", ex.Message);
+            _logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
             return new List<VentaDto>();
         }
     }

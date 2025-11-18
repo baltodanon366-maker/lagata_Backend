@@ -213,5 +213,54 @@ public class VentasController : ControllerBase
             return StatusCode(500, new { message = "Error interno del servidor" });
         }
     }
+
+    /// <summary>
+    /// Obtener todas las ventas activas (completadas)
+    /// </summary>
+    /// <remarks>
+    /// Obtiene todas las ventas con estado "Completada" sin necesidad de filtrar por fechas.
+    /// Útil para ver todas las ventas recientes del sistema.
+    /// 
+    /// **Parámetros:**
+    /// - `top`: Número máximo de resultados (por defecto: 100, máximo recomendado: 500)
+    /// 
+    /// **Ejemplo de uso:**
+    /// ```
+    /// GET /api/ventas/activas?top=50
+    /// ```
+    /// 
+    /// **Ordenamiento:**
+    /// Las ventas se retornan ordenadas por fecha descendente (más recientes primero).
+    /// 
+    /// **Incluye:**
+    /// - Información del cliente (si aplica)
+    /// - Información del empleado (si aplica)
+    /// - Información del usuario que realizó la venta
+    /// - Detalles completos de productos vendidos
+    /// - Totales, subtotales, impuestos y descuentos calculados
+    /// - Método de pago utilizado
+    /// </remarks>
+    /// <param name="top">Número máximo de resultados (por defecto: 100)</param>
+    /// <returns>Lista de ventas activas con todos sus detalles</returns>
+    /// <response code="200">✅ Consulta exitosa. Retorna lista de ventas activas.</response>
+    /// <response code="401">❌ No autenticado. Se requiere token JWT válido.</response>
+    /// <response code="500">❌ Error interno del servidor.</response>
+    [HttpGet("activas")]
+    [ProducesResponseType(typeof(List<VentaDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> MostrarActivas([FromQuery] int top = 100)
+    {
+        try
+        {
+            var ventas = await _ventaService.MostrarActivasAsync(top);
+            return Ok(ventas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener ventas activas");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
 }
 

@@ -3,10 +3,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using MongoDB.Driver;
+using Microsoft.Extensions.Options;
 using LicoreriaAPI.Infrastructure.Configuration;
 using LicoreriaAPI.Infrastructure.Data.SqlServer;
 using LicoreriaAPI.Infrastructure.Data.MongoDB;
 using LicoreriaAPI.Infrastructure.Data.DataWarehouse;
+using LicoreriaAPI.Domain.Interfaces;
+using LicoreriaAPI.Infrastructure.Repositories.MongoDB;
 
 namespace LicoreriaAPI.Extensions;
 
@@ -15,8 +18,15 @@ public static class ServiceExtensions
     public static void ConfigureSqlServer(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("SqlServerConnection");
-        services.AddDbContext<LicoreriaDbContext>(options =>
-            options.UseSqlServer(connectionString, b => b.MigrationsAssembly("LicoreriaAPI")));
+        services.AddDbContext<LicoreriaDbContext>((sp, options) =>
+        {
+            options.UseSqlServer(connectionString, b => b.MigrationsAssembly("LicoreriaAPI"));
+            
+            // Agregar interceptor para rastrear consultas lentas
+            var logger = sp.GetRequiredService<ILogger<SlowQueryInterceptor>>();
+            var slowQueryRepo = sp.GetService<ISlowQueryMetricRepository>();
+            options.AddInterceptors(new SlowQueryInterceptor(logger, slowQueryRepo));
+        });
     }
 
     public static void ConfigureMongoDB(this IServiceCollection services, IConfiguration configuration)
@@ -24,9 +34,20 @@ public static class ServiceExtensions
         var mongoSettings = configuration.GetSection("MongoDBSettings").Get<MongoDBSettings>();
         var connectionString = configuration.GetConnectionString("MongoDBConnection");
 
+        // Configurar MongoClient con timeouts más largos para conexiones a MongoDB Atlas
+        // La conexión se establecerá cuando se use por primera vez
         services.AddSingleton<IMongoClient>(sp =>
         {
-            return new MongoClient(connectionString);
+            var settings = MongoClientSettings.FromConnectionString(connectionString);
+            settings.ServerSelectionTimeout = TimeSpan.FromSeconds(30); // Timeout más largo para Atlas
+            settings.ConnectTimeout = TimeSpan.FromSeconds(30);
+            settings.SocketTimeout = TimeSpan.FromSeconds(30);
+            settings.HeartbeatInterval = TimeSpan.FromSeconds(10);
+            settings.MaxConnectionIdleTime = TimeSpan.FromMinutes(5);
+            // Habilitar retry automático
+            settings.RetryWrites = true;
+            // No validar conexión al inicio
+            return new MongoClient(settings);
         });
 
         services.AddScoped<MongoDbContext>(sp =>
@@ -182,18 +203,16 @@ Los endpoints están organizados por **tags** que indican:
                 
                 // Asignar tag según el nombre del controlador
                 if (controllerName.Contains("Dashboard", StringComparison.OrdinalIgnoreCase) || 
-                    controllerName.Contains("Analytics", StringComparison.OrdinalIgnoreCase) ||
-                    controllerName.Contains("Metric", StringComparison.OrdinalIgnoreCase))
+                    controllerName.Contains("Analytics", StringComparison.OrdinalIgnoreCase))
                 {
                     return new[] { "Analytics (Data Warehouse)" };
                 }
 
-                if (controllerName.Contains("Notification", StringComparison.OrdinalIgnoreCase) ||
-                    controllerName.Contains("Log", StringComparison.OrdinalIgnoreCase) ||
-                    controllerName.Contains("Mongo", StringComparison.OrdinalIgnoreCase))
+                if (controllerName.Contains("Metric", StringComparison.OrdinalIgnoreCase))
                 {
-                    return new[] { "Funcionalidades (MongoDB)" };
+                    return new[] { "📊 Métricas MongoDB" };
                 }
+
 
                 if (controllerName.Contains("Auth", StringComparison.OrdinalIgnoreCase))
                 {
@@ -302,6 +321,49 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                     .AllowAnyMethod()
                     .AllowAnyHeader();
             });
+        });
+    }
+
+    /// <summary>
+    /// Configura los repositorios de métricas de MongoDB
+    /// Los repositorios son Singleton porque MongoDB es thread-safe y los middlewares necesitan acceso desde el root provider
+    /// Se registran usando factory methods para creación lazy
+    /// </summary>
+    public static void ConfigureMetricsRepositories(this IServiceCollection services)
+    {
+        services.AddSingleton<INetworkUsageMetricRepository>(sp =>
+        {
+            var mongoClient = sp.GetRequiredService<IMongoClient>();
+            var settings = sp.GetRequiredService<IOptions<MongoDBSettings>>();
+            return new NetworkUsageMetricRepository(mongoClient, settings);
+        });
+        
+        services.AddSingleton<IFailedLoginAttemptRepository>(sp =>
+        {
+            var mongoClient = sp.GetRequiredService<IMongoClient>();
+            var settings = sp.GetRequiredService<IOptions<MongoDBSettings>>();
+            return new FailedLoginAttemptRepository(mongoClient, settings);
+        });
+        
+        services.AddSingleton<ISlowQueryMetricRepository>(sp =>
+        {
+            var mongoClient = sp.GetRequiredService<IMongoClient>();
+            var settings = sp.GetRequiredService<IOptions<MongoDBSettings>>();
+            return new SlowQueryMetricRepository(mongoClient, settings);
+        });
+        
+        services.AddSingleton<IActiveUserMetricRepository>(sp =>
+        {
+            var mongoClient = sp.GetRequiredService<IMongoClient>();
+            var settings = sp.GetRequiredService<IOptions<MongoDBSettings>>();
+            return new ActiveUserMetricRepository(mongoClient, settings);
+        });
+        
+        services.AddSingleton<ITransactionMetricRepository>(sp =>
+        {
+            var mongoClient = sp.GetRequiredService<IMongoClient>();
+            var settings = sp.GetRequiredService<IOptions<MongoDBSettings>>();
+            return new TransactionMetricRepository(mongoClient, settings);
         });
     }
 }

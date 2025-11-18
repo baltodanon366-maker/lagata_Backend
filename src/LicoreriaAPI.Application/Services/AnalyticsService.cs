@@ -46,17 +46,18 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    public async Task<List<VentasPorProductoDto>> VentasPorProductoAsync(DateTime? fechaInicio, DateTime? fechaFin, int top = 20)
+    public async Task<List<VentasPorProductoDto>> VentasPorProductoAsync(int? productoId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null, int top = 20)
     {
         try
         {
+            var productoIdParam = new SqlParameter("@ProductoId", (object?)productoId ?? DBNull.Value);
             var fechaInicioParam = new SqlParameter("@FechaInicio", (object?)fechaInicio ?? DBNull.Value);
             var fechaFinParam = new SqlParameter("@FechaFin", (object?)fechaFin ?? DBNull.Value);
             var topParam = new SqlParameter("@Top", top);
 
             var resultados = await _dwContext.Database.SqlQueryRaw<VentasPorProductoDto>(
-                "EXEC sp_DW_Ventas_PorProducto @FechaInicio, @FechaFin, @Top",
-                fechaInicioParam, fechaFinParam, topParam).ToListAsync();
+                "EXEC sp_DW_Ventas_PorProducto @ProductoId, @FechaInicio, @FechaFin, @Top",
+                productoIdParam, fechaInicioParam, fechaFinParam, topParam).ToListAsync();
 
             return resultados;
         }
@@ -67,16 +68,17 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    public async Task<List<VentasPorCategoriaDto>> VentasPorCategoriaAsync(DateTime? fechaInicio, DateTime? fechaFin)
+    public async Task<List<VentasPorCategoriaDto>> VentasPorCategoriaAsync(int? categoriaId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null)
     {
         try
         {
+            var categoriaIdParam = new SqlParameter("@CategoriaId", (object?)categoriaId ?? DBNull.Value);
             var fechaInicioParam = new SqlParameter("@FechaInicio", (object?)fechaInicio ?? DBNull.Value);
             var fechaFinParam = new SqlParameter("@FechaFin", (object?)fechaFin ?? DBNull.Value);
 
             var resultados = await _dwContext.Database.SqlQueryRaw<VentasPorCategoriaDto>(
-                "EXEC sp_DW_Ventas_PorCategoria @FechaInicio, @FechaFin",
-                fechaInicioParam, fechaFinParam).ToListAsync();
+                "EXEC sp_DW_Ventas_PorCategoria @CategoriaId, @FechaInicio, @FechaFin",
+                categoriaIdParam, fechaInicioParam, fechaFinParam).ToListAsync();
 
             return resultados;
         }
@@ -87,17 +89,18 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    public async Task<List<VentasPorClienteDto>> VentasPorClienteAsync(DateTime? fechaInicio, DateTime? fechaFin, int top = 20)
+    public async Task<List<VentasPorClienteDto>> VentasPorClienteAsync(int? clienteId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null, int top = 20)
     {
         try
         {
+            var clienteIdParam = new SqlParameter("@ClienteId", (object?)clienteId ?? DBNull.Value);
             var fechaInicioParam = new SqlParameter("@FechaInicio", (object?)fechaInicio ?? DBNull.Value);
             var fechaFinParam = new SqlParameter("@FechaFin", (object?)fechaFin ?? DBNull.Value);
             var topParam = new SqlParameter("@Top", top);
 
             var resultados = await _dwContext.Database.SqlQueryRaw<VentasPorClienteDto>(
-                "EXEC sp_DW_Ventas_PorCliente @FechaInicio, @FechaFin, @Top",
-                fechaInicioParam, fechaFinParam, topParam).ToListAsync();
+                "EXEC sp_DW_Ventas_PorCliente @ClienteId, @FechaInicio, @FechaFin, @Top",
+                clienteIdParam, fechaInicioParam, fechaFinParam, topParam).ToListAsync();
 
             return resultados;
         }
@@ -108,16 +111,17 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    public async Task<List<VentasPorEmpleadoDto>> VentasPorEmpleadoAsync(DateTime? fechaInicio, DateTime? fechaFin)
+    public async Task<List<VentasPorEmpleadoDto>> VentasPorEmpleadoAsync(int? empleadoId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null)
     {
         try
         {
+            var empleadoIdParam = new SqlParameter("@EmpleadoId", (object?)empleadoId ?? DBNull.Value);
             var fechaInicioParam = new SqlParameter("@FechaInicio", (object?)fechaInicio ?? DBNull.Value);
             var fechaFinParam = new SqlParameter("@FechaFin", (object?)fechaFin ?? DBNull.Value);
 
             var resultados = await _dwContext.Database.SqlQueryRaw<VentasPorEmpleadoDto>(
-                "EXEC sp_DW_Ventas_PorEmpleado @FechaInicio, @FechaFin",
-                fechaInicioParam, fechaFinParam).ToListAsync();
+                "EXEC sp_DW_Ventas_PorEmpleado @EmpleadoId, @FechaInicio, @FechaFin",
+                empleadoIdParam, fechaInicioParam, fechaFinParam).ToListAsync();
 
             return resultados;
         }
@@ -173,17 +177,18 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    public async Task<List<ComprasPorProveedorDto>> ComprasPorProveedorAsync(DateTime? fechaInicio, DateTime? fechaFin, int top = 20)
+    public async Task<List<ComprasPorProveedorDto>> ComprasPorProveedorAsync(int? proveedorId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null, int top = 20)
     {
         try
         {
+            var proveedorIdParam = new SqlParameter("@ProveedorId", (object?)proveedorId ?? DBNull.Value);
             var fechaInicioParam = new SqlParameter("@FechaInicio", (object?)fechaInicio ?? DBNull.Value);
             var fechaFinParam = new SqlParameter("@FechaFin", (object?)fechaFin ?? DBNull.Value);
             var topParam = new SqlParameter("@Top", top);
 
             var resultados = await _dwContext.Database.SqlQueryRaw<ComprasPorProveedorDto>(
-                "EXEC sp_DW_Compras_PorProveedor @FechaInicio, @FechaFin, @Top",
-                fechaInicioParam, fechaFinParam, topParam).ToListAsync();
+                "EXEC sp_DW_Compras_PorProveedor @ProveedorId, @FechaInicio, @FechaFin, @Top",
+                proveedorIdParam, fechaInicioParam, fechaFinParam, topParam).ToListAsync();
 
             return resultados;
         }
@@ -194,17 +199,18 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    public async Task<List<ComprasPorProductoDto>> ComprasPorProductoAsync(DateTime? fechaInicio, DateTime? fechaFin, int top = 20)
+    public async Task<List<ComprasPorProductoDto>> ComprasPorProductoAsync(int? productoId = null, DateTime? fechaInicio = null, DateTime? fechaFin = null, int top = 20)
     {
         try
         {
+            var productoIdParam = new SqlParameter("@ProductoId", (object?)productoId ?? DBNull.Value);
             var fechaInicioParam = new SqlParameter("@FechaInicio", (object?)fechaInicio ?? DBNull.Value);
             var fechaFinParam = new SqlParameter("@FechaFin", (object?)fechaFin ?? DBNull.Value);
             var topParam = new SqlParameter("@Top", top);
 
             var resultados = await _dwContext.Database.SqlQueryRaw<ComprasPorProductoDto>(
-                "EXEC sp_DW_Compras_PorProducto @FechaInicio, @FechaFin, @Top",
-                fechaInicioParam, fechaFinParam, topParam).ToListAsync();
+                "EXEC sp_DW_Compras_PorProducto @ProductoId, @FechaInicio, @FechaFin, @Top",
+                productoIdParam, fechaInicioParam, fechaFinParam, topParam).ToListAsync();
 
             return resultados;
         }

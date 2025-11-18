@@ -156,11 +156,18 @@ public class ModeloService : IModeloService
     {
         try
         {
+            // Primero intentar buscar activo
             var modeloIdParam = new SqlParameter("@ModeloId", id);
-
             var modelo = await _context.Modelos
                 .FromSqlRaw("EXEC sp_Modelo_MostrarActivosPorId @ModeloId", modeloIdParam)
                 .FirstOrDefaultAsync();
+
+            // Si no está activo, buscar sin importar el estado
+            if (modelo == null)
+            {
+                modelo = await _context.Modelos
+                    .FirstOrDefaultAsync(m => m.Id == id);
+            }
 
             if (modelo == null) return null;
 

@@ -147,7 +147,7 @@ BEGIN
         c.[ProveedorId],
         p.[Nombre] AS ProveedorNombre,
         c.[UsuarioId],
-        u.[NombreUsuario],
+        u.[NombreUsuario] AS UsuarioNombre,
         c.[FechaCompra],
         c.[Subtotal],
         c.[Impuestos],
@@ -212,6 +212,38 @@ BEGIN
     INNER JOIN [Proveedores] p ON c.[ProveedorId] = p.[Id]
     INNER JOIN [Usuarios] u ON c.[UsuarioId] = u.[Id]
     WHERE c.[FechaCompra] BETWEEN @FechaInicio AND @FechaFin
+    ORDER BY c.[FechaCompra] DESC;
+END
+GO
+
+-- sp_Compra_MostrarActivas
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_Compra_MostrarActivas]') AND type = 'P')
+    DROP PROCEDURE [dbo].[sp_Compra_MostrarActivas]
+GO
+
+CREATE PROCEDURE [dbo].[sp_Compra_MostrarActivas]
+    @Top INT = 100
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT TOP (@Top)
+        c.[Id],
+        c.[Folio],
+        c.[ProveedorId],
+        p.[Nombre] AS ProveedorNombre,
+        c.[UsuarioId],
+        u.[NombreUsuario],
+        c.[FechaCompra],
+        c.[Subtotal],
+        c.[Impuestos],
+        c.[Total],
+        c.[Estado],
+        c.[Observaciones]
+    FROM [Compras] c
+    INNER JOIN [Proveedores] p ON c.[ProveedorId] = p.[Id]
+    INNER JOIN [Usuarios] u ON c.[UsuarioId] = u.[Id]
+    WHERE c.[Estado] = 'Completada'
     ORDER BY c.[FechaCompra] DESC;
 END
 GO
@@ -377,7 +409,7 @@ BEGIN
         v.[ClienteId],
         c.[NombreCompleto] AS ClienteNombre,
         v.[UsuarioId],
-        u.[NombreUsuario],
+        u.[NombreUsuario] AS UsuarioNombre,
         v.[EmpleadoId],
         e.[NombreCompleto] AS EmpleadoNombre,
         v.[FechaVenta],
@@ -452,6 +484,42 @@ BEGIN
     INNER JOIN [Usuarios] u ON v.[UsuarioId] = u.[Id]
     LEFT JOIN [Empleados] e ON v.[EmpleadoId] = e.[Id]
     WHERE v.[FechaVenta] BETWEEN @FechaInicio AND @FechaFin
+    ORDER BY v.[FechaVenta] DESC;
+END
+GO
+
+-- sp_Venta_MostrarActivas
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_Venta_MostrarActivas]') AND type = 'P')
+    DROP PROCEDURE [dbo].[sp_Venta_MostrarActivas]
+GO
+
+CREATE PROCEDURE [dbo].[sp_Venta_MostrarActivas]
+    @Top INT = 100
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT TOP (@Top)
+        v.[Id],
+        v.[Folio],
+        v.[ClienteId],
+        c.[NombreCompleto] AS ClienteNombre,
+        v.[UsuarioId],
+        u.[NombreUsuario],
+        v.[EmpleadoId],
+        e.[NombreCompleto] AS EmpleadoNombre,
+        v.[FechaVenta],
+        v.[Subtotal],
+        v.[Impuestos],
+        v.[Descuento],
+        v.[Total],
+        v.[MetodoPago],
+        v.[Estado]
+    FROM [Ventas] v
+    LEFT JOIN [Clientes] c ON v.[ClienteId] = c.[Id]
+    INNER JOIN [Usuarios] u ON v.[UsuarioId] = u.[Id]
+    LEFT JOIN [Empleados] e ON v.[EmpleadoId] = e.[Id]
+    WHERE v.[Estado] = 'Completada'
     ORDER BY v.[FechaVenta] DESC;
 END
 GO

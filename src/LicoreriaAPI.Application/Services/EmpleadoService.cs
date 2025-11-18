@@ -180,11 +180,18 @@ public class EmpleadoService : IEmpleadoService
     {
         try
         {
+            // Primero intentar buscar activo
             var empleadoIdParam = new SqlParameter("@EmpleadoId", id);
-
             var empleado = await _context.Empleados
                 .FromSqlRaw("EXEC sp_Empleado_MostrarActivosPorId @EmpleadoId", empleadoIdParam)
                 .FirstOrDefaultAsync();
+
+            // Si no está activo, buscar sin importar el estado
+            if (empleado == null)
+            {
+                empleado = await _context.Empleados
+                    .FirstOrDefaultAsync(e => e.Id == id);
+            }
 
             if (empleado == null) return null;
 

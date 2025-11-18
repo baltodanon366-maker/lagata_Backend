@@ -88,6 +88,8 @@ public class ComprasController : ControllerBase
     /// </summary>
     [HttpGet("rango-fechas")]
     [ProducesResponseType(typeof(List<CompraDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> MostrarPorRangoFechas([FromQuery] DateTime fechaInicio, [FromQuery] DateTime fechaFin, [FromQuery] int top = 100)
     {
         try
@@ -98,6 +100,53 @@ public class ComprasController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener compras por rango de fechas");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Obtener todas las compras activas (completadas)
+    /// </summary>
+    /// <remarks>
+    /// Obtiene todas las compras con estado "Completada" sin necesidad de filtrar por fechas.
+    /// Útil para ver todas las compras recientes del sistema.
+    /// 
+    /// **Parámetros:**
+    /// - `top`: Número máximo de resultados (por defecto: 100, máximo recomendado: 500)
+    /// 
+    /// **Ejemplo de uso:**
+    /// ```
+    /// GET /api/compras/activas?top=50
+    /// ```
+    /// 
+    /// **Ordenamiento:**
+    /// Las compras se retornan ordenadas por fecha descendente (más recientes primero).
+    /// 
+    /// **Incluye:**
+    /// - Información del proveedor
+    /// - Información del usuario que realizó la compra
+    /// - Detalles completos de productos comprados
+    /// - Totales y subtotales calculados
+    /// </remarks>
+    /// <param name="top">Número máximo de resultados (por defecto: 100)</param>
+    /// <returns>Lista de compras activas con todos sus detalles</returns>
+    /// <response code="200">✅ Consulta exitosa. Retorna lista de compras activas.</response>
+    /// <response code="401">❌ No autenticado. Se requiere token JWT válido.</response>
+    /// <response code="500">❌ Error interno del servidor.</response>
+    [HttpGet("activas")]
+    [ProducesResponseType(typeof(List<CompraDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> MostrarActivas([FromQuery] int top = 100)
+    {
+        try
+        {
+            var compras = await _compraService.MostrarActivasAsync(top);
+            return Ok(compras);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener compras activas");
             return StatusCode(500, new { message = "Error interno del servidor" });
         }
     }

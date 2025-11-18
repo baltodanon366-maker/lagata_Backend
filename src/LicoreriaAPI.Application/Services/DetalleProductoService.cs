@@ -145,45 +145,83 @@ public class DetalleProductoService : IDetalleProductoService
     {
         try
         {
-            var detallesProducto = await _context.DetallesProducto
-                .Include(dp => dp.Producto)
-                .Include(dp => dp.Categoria)
-                .Include(dp => dp.Marca)
-                .Include(dp => dp.Modelo)
-                .Where(dp => dp.Activo)
-                .OrderByDescending(dp => dp.FechaCreacion)
-                .Take(top)
+            var topParam = new SqlParameter("@Top", top);
+            
+            // Usar SqlQueryRaw directamente con el DTO para mapear las columnas del stored procedure
+            // El stored procedure devuelve todas las columnas incluyendo ProductoNombre, CategoriaNombre, etc.
+            var detallesProducto = await _context.Database
+                .SqlQueryRaw<DetalleProductoDto>(
+                    "EXEC sp_DetalleProducto_MostrarActivos @Top",
+                    topParam)
                 .ToListAsync();
 
-            return detallesProducto.Select(dp => new DetalleProductoDto
-            {
-                Id = dp.Id,
-                ProductoId = dp.ProductoId,
-                ProductoNombre = dp.Producto.Nombre,
-                CategoriaId = dp.CategoriaId,
-                CategoriaNombre = dp.Categoria.Nombre,
-                MarcaId = dp.MarcaId,
-                MarcaNombre = dp.Marca.Nombre,
-                ModeloId = dp.ModeloId,
-                ModeloNombre = dp.Modelo.Nombre,
-                Codigo = dp.Codigo,
-                SKU = dp.SKU,
-                Observaciones = dp.Observaciones,
-                PrecioCompra = dp.PrecioCompra,
-                PrecioVenta = dp.PrecioVenta,
-                Stock = dp.Stock,
-                StockMinimo = dp.StockMinimo,
-                UnidadMedida = dp.UnidadMedida,
-                FechaUltimoMovimiento = dp.FechaUltimoMovimiento,
-                Activo = dp.Activo,
-                FechaCreacion = dp.FechaCreacion,
-                FechaModificacion = dp.FechaModificacion
-            }).ToList();
+            _logger.LogInformation("Se obtuvieron {Count} detalles de producto activos usando stored procedure", detallesProducto.Count);
+            
+            return detallesProducto;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener detalles producto activos");
-            return new List<DetalleProductoDto>();
+            _logger.LogError(ex, "Error al obtener detalles producto activos: {Message}", ex.Message);
+            _logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
+            
+            // Fallback: intentar consulta directa sin stored procedure
+            try
+            {
+                _logger.LogWarning("Intentando fallback con consulta directa...");
+                var detallesProducto = await _context.DetallesProducto
+                    .Include(dp => dp.Producto)
+                    .Include(dp => dp.Categoria)
+                    .Include(dp => dp.Marca)
+                    .Include(dp => dp.Modelo)
+                    .Where(dp => dp.Activo)
+                    .OrderByDescending(dp => dp.FechaCreacion)
+                    .Take(top)
+                    .ToListAsync();
+
+                var resultado = detallesProducto.Select(dp => new DetalleProductoDto
+                {
+                    Id = dp.Id,
+                    ProductoId = dp.ProductoId,
+                    ProductoNombre = dp.Producto?.Nombre ?? string.Empty,
+                    CategoriaId = dp.CategoriaId,
+                    CategoriaNombre = dp.Categoria?.Nombre ?? string.Empty,
+                    MarcaId = dp.MarcaId,
+                    MarcaNombre = dp.Marca?.Nombre ?? string.Empty,
+                    ModeloId = dp.ModeloId,
+                    ModeloNombre = dp.Modelo?.Nombre ?? string.Empty,
+                    Codigo = dp.Codigo,
+                    SKU = dp.SKU,
+                    Observaciones = dp.Observaciones,
+                    PrecioCompra = dp.PrecioCompra,
+                    PrecioVenta = dp.PrecioVenta,
+                    Stock = dp.Stock,
+                    StockMinimo = dp.StockMinimo,
+                    UnidadMedida = dp.UnidadMedida,
+                    FechaUltimoMovimiento = dp.FechaUltimoMovimiento,
+                    Activo = dp.Activo,
+                    FechaCreacion = dp.FechaCreacion,
+                    FechaModificacion = dp.FechaModificacion
+                }).ToList();
+
+                _logger.LogInformation("Fallback exitoso: Se obtuvieron {Count} detalles de producto activos", resultado.Count);
+                return resultado;
+            }
+            catch (Exception fallbackEx)
+            {
+                _logger.LogError(fallbackEx, "Error en fallback al obtener detalles producto activos");
+                
+                // Último intento: contar registros para diagnóstico
+                try
+                {
+                    var count = await _context.DetallesProducto
+                        .Where(dp => dp.Activo)
+                        .CountAsync();
+                    _logger.LogWarning("Hay {Count} detalles producto activos en la base de datos, pero no se pudieron cargar", count);
+                }
+                catch { }
+                
+                return new List<DetalleProductoDto>();
+            }
         }
     }
 
@@ -191,8 +229,9 @@ public class DetalleProductoService : IDetalleProductoService
     {
         try
         {
-            var detalleProductoIdParam = new SqlParameter("@DetalleProductoId", id);
+            _logger.LogInformation("Buscando detalle producto con ID: {Id}", id);
 
+            // Primero intentar buscar activo
             var detalleProducto = await _context.DetallesProducto
                 .Include(dp => dp.Producto)
                 .Include(dp => dp.Categoria)
@@ -200,19 +239,41 @@ public class DetalleProductoService : IDetalleProductoService
                 .Include(dp => dp.Modelo)
                 .FirstOrDefaultAsync(dp => dp.Id == id && dp.Activo);
 
-            if (detalleProducto == null) return null;
+            _logger.LogInformation("Búsqueda activo: {Resultado}", detalleProducto != null ? "Encontrado" : "No encontrado");
+
+            // Si no está activo, buscar sin importar el estado
+            if (detalleProducto == null)
+            {
+                _logger.LogInformation("Buscando sin importar estado activo...");
+                detalleProducto = await _context.DetallesProducto
+                    .Include(dp => dp.Producto)
+                    .Include(dp => dp.Categoria)
+                    .Include(dp => dp.Marca)
+                    .Include(dp => dp.Modelo)
+                    .FirstOrDefaultAsync(dp => dp.Id == id);
+
+                _logger.LogInformation("Búsqueda sin filtro: {Resultado}", detalleProducto != null ? "Encontrado" : "No encontrado");
+            }
+
+            if (detalleProducto == null)
+            {
+                _logger.LogWarning("Detalle producto con ID {Id} no encontrado en la base de datos", id);
+                return null;
+            }
+
+            _logger.LogInformation("Detalle producto encontrado: ID={Id}, Activo={Activo}", detalleProducto.Id, detalleProducto.Activo);
 
             return new DetalleProductoDto
             {
                 Id = detalleProducto.Id,
                 ProductoId = detalleProducto.ProductoId,
-                ProductoNombre = detalleProducto.Producto.Nombre,
+                ProductoNombre = detalleProducto.Producto?.Nombre ?? string.Empty,
                 CategoriaId = detalleProducto.CategoriaId,
-                CategoriaNombre = detalleProducto.Categoria.Nombre,
+                CategoriaNombre = detalleProducto.Categoria?.Nombre ?? string.Empty,
                 MarcaId = detalleProducto.MarcaId,
-                MarcaNombre = detalleProducto.Marca.Nombre,
+                MarcaNombre = detalleProducto.Marca?.Nombre ?? string.Empty,
                 ModeloId = detalleProducto.ModeloId,
-                ModeloNombre = detalleProducto.Modelo.Nombre,
+                ModeloNombre = detalleProducto.Modelo?.Nombre ?? string.Empty,
                 Codigo = detalleProducto.Codigo,
                 SKU = detalleProducto.SKU,
                 Observaciones = detalleProducto.Observaciones,

@@ -156,13 +156,33 @@ public class CategoriaService : ICategoriaService
     {
         try
         {
-            var categoriaIdParam = new SqlParameter("@CategoriaId", id);
+            _logger.LogInformation("Buscando categoría con ID: {Id}", id);
 
+            // Primero intentar buscar activo
+            var categoriaIdParam = new SqlParameter("@CategoriaId", id);
             var categoria = await _context.Categorias
                 .FromSqlRaw("EXEC sp_Categoria_MostrarActivosPorId @CategoriaId", categoriaIdParam)
                 .FirstOrDefaultAsync();
 
-            if (categoria == null) return null;
+            _logger.LogInformation("Búsqueda activo: {Resultado}", categoria != null ? "Encontrado" : "No encontrado");
+
+            // Si no está activo, buscar sin importar el estado
+            if (categoria == null)
+            {
+                _logger.LogInformation("Buscando sin importar estado activo...");
+                categoria = await _context.Categorias
+                    .FirstOrDefaultAsync(c => c.Id == id);
+
+                _logger.LogInformation("Búsqueda sin filtro: {Resultado}", categoria != null ? "Encontrado" : "No encontrado");
+            }
+
+            if (categoria == null)
+            {
+                _logger.LogWarning("Categoría con ID {Id} no encontrada en la base de datos", id);
+                return null;
+            }
+
+            _logger.LogInformation("Categoría encontrada: ID={Id}, Activo={Activo}", categoria.Id, categoria.Activo);
 
             return new CategoriaDto
             {

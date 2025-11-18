@@ -10,5 +10,6 @@ public interface ICompraService
     Task<(int CompraId, string? ErrorMessage)> CrearAsync(CrearCompraDto crearDto, int usuarioId);
     Task<CompraDto?> ObtenerPorIdAsync(int compraId);
     Task<List<CompraDto>> MostrarPorRangoFechasAsync(DateTime fechaInicio, DateTime fechaFin, int top = 100);
+    Task<List<CompraDto>> MostrarActivasAsync(int top = 100);
 }
 

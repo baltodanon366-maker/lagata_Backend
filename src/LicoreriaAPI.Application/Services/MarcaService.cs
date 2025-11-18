@@ -156,11 +156,18 @@ public class MarcaService : IMarcaService
     {
         try
         {
+            // Primero intentar buscar activo
             var marcaIdParam = new SqlParameter("@MarcaId", id);
-
             var marca = await _context.Marcas
                 .FromSqlRaw("EXEC sp_Marca_MostrarActivosPorId @MarcaId", marcaIdParam)
                 .FirstOrDefaultAsync();
+
+            // Si no está activo, buscar sin importar el estado
+            if (marca == null)
+            {
+                marca = await _context.Marcas
+                    .FirstOrDefaultAsync(m => m.Id == id);
+            }
 
             if (marca == null) return null;
 

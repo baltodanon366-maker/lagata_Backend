@@ -170,11 +170,18 @@ public class ClienteService : IClienteService
     {
         try
         {
+            // Primero intentar buscar activo
             var clienteIdParam = new SqlParameter("@ClienteId", id);
-
             var cliente = await _context.Clientes
                 .FromSqlRaw("EXEC sp_Cliente_MostrarActivosPorId @ClienteId", clienteIdParam)
                 .FirstOrDefaultAsync();
+
+            // Si no está activo, buscar sin importar el estado
+            if (cliente == null)
+            {
+                cliente = await _context.Clientes
+                    .FirstOrDefaultAsync(c => c.Id == id);
+            }
 
             if (cliente == null) return null;
 

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LicoreriaAPI.DTOs.Transacciones;
 
@@ -48,6 +49,7 @@ public class VentaDto
     
     public DateTime? FechaModificacion { get; set; }
     
+    [NotMapped]
     public List<VentaDetalleDto> Detalles { get; set; } = new List<VentaDetalleDto>();
 }
 

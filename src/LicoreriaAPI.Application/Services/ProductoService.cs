@@ -156,11 +156,18 @@ public class ProductoService : IProductoService
     {
         try
         {
+            // Primero intentar buscar activo
             var productoIdParam = new SqlParameter("@ProductoId", id);
-
             var producto = await _context.Productos
                 .FromSqlRaw("EXEC sp_Producto_MostrarActivosPorId @ProductoId", productoIdParam)
                 .FirstOrDefaultAsync();
+
+            // Si no está activo, buscar sin importar el estado
+            if (producto == null)
+            {
+                producto = await _context.Productos
+                    .FirstOrDefaultAsync(p => p.Id == id);
+            }
 
             if (producto == null) return null;
 

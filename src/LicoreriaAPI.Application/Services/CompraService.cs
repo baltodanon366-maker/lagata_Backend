@@ -76,6 +76,9 @@ public class CompraService : ICompraService
     {
         try
         {
+            _logger.LogInformation("Obteniendo compra con ID: {CompraId}", compraId);
+
+            // Usar consulta directa con Include para evitar problemas de mapeo
             var compra = await _context.Compras
                 .Include(c => c.Proveedor)
                 .Include(c => c.Usuario)
@@ -90,16 +93,22 @@ public class CompraService : ICompraService
                         .ThenInclude(dp => dp.Categoria)
                 .FirstOrDefaultAsync(c => c.Id == compraId);
 
-            if (compra == null) return null;
+            if (compra == null)
+            {
+                _logger.LogWarning("Compra con ID {CompraId} no encontrada", compraId);
+                return null;
+            }
+
+            _logger.LogInformation("Compra encontrada: ID={Id}, Folio={Folio}", compra.Id, compra.Folio);
 
             return new CompraDto
             {
                 Id = compra.Id,
                 Folio = compra.Folio,
                 ProveedorId = compra.ProveedorId,
-                ProveedorNombre = compra.Proveedor.Nombre,
+                ProveedorNombre = compra.Proveedor?.Nombre,
                 UsuarioId = compra.UsuarioId,
-                UsuarioNombre = compra.Usuario.NombreUsuario,
+                UsuarioNombre = compra.Usuario?.NombreUsuario,
                 FechaCompra = compra.FechaCompra,
                 Subtotal = compra.Subtotal,
                 Impuestos = compra.Impuestos,
@@ -113,10 +122,10 @@ public class CompraService : ICompraService
                     Id = cd.Id,
                     CompraId = cd.CompraId,
                     DetalleProductoId = cd.DetalleProductoId,
-                    ProductoCodigo = cd.DetalleProducto.Codigo,
-                    ProductoNombre = cd.DetalleProducto.Producto.Nombre,
-                    MarcaNombre = cd.DetalleProducto.Marca.Nombre,
-                    CategoriaNombre = cd.DetalleProducto.Categoria.Nombre,
+                    ProductoCodigo = cd.DetalleProducto?.Codigo,
+                    ProductoNombre = cd.DetalleProducto?.Producto?.Nombre,
+                    MarcaNombre = cd.DetalleProducto?.Marca?.Nombre,
+                    CategoriaNombre = cd.DetalleProducto?.Categoria?.Nombre,
                     Cantidad = cd.Cantidad,
                     PrecioUnitario = cd.PrecioUnitario,
                     Subtotal = cd.Subtotal
@@ -126,6 +135,7 @@ public class CompraService : ICompraService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener compra ID: {CompraId}", compraId);
+            _logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
             return null;
         }
     }
@@ -171,6 +181,80 @@ public class CompraService : ICompraService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener compras por rango de fechas");
+            return new List<CompraDto>();
+        }
+    }
+
+    public async Task<List<CompraDto>> MostrarActivasAsync(int top = 100)
+    {
+        try
+        {
+            _logger.LogInformation("Ejecutando MostrarActivasAsync con Top={Top}", top);
+
+            // Verificar si hay compras con estado 'Completada'
+            var hayCompletadas = await _context.Compras.AnyAsync(c => c.Estado == "Completada");
+            _logger.LogInformation("Hay compras completadas: {HayCompletadas}", hayCompletadas);
+
+            // Usar consulta directa con Include para evitar problemas de mapeo
+            var compras = await _context.Compras
+                .Include(c => c.Proveedor)
+                .Include(c => c.Usuario)
+                .Include(c => c.ComprasDetalle)
+                    .ThenInclude(cd => cd.DetalleProducto)
+                        .ThenInclude(dp => dp.Producto)
+                .Include(c => c.ComprasDetalle)
+                    .ThenInclude(cd => cd.DetalleProducto)
+                        .ThenInclude(dp => dp.Marca)
+                .Include(c => c.ComprasDetalle)
+                    .ThenInclude(cd => cd.DetalleProducto)
+                        .ThenInclude(dp => dp.Categoria)
+                .Where(c => hayCompletadas ? c.Estado == "Completada" : true)
+                .OrderByDescending(c => c.FechaCompra)
+                .Take(top)
+                .ToListAsync();
+
+            _logger.LogInformation("Consulta directa devolvió {Count} compras", compras.Count);
+
+            _logger.LogInformation("Mapeando {Count} compras a DTOs", compras.Count);
+
+            var comprasDto = compras.Select(c => new CompraDto
+            {
+                Id = c.Id,
+                Folio = c.Folio,
+                ProveedorId = c.ProveedorId,
+                ProveedorNombre = c.Proveedor?.Nombre,
+                UsuarioId = c.UsuarioId,
+                UsuarioNombre = c.Usuario?.NombreUsuario,
+                FechaCompra = c.FechaCompra,
+                Subtotal = c.Subtotal,
+                Impuestos = c.Impuestos,
+                Total = c.Total,
+                Estado = c.Estado,
+                Observaciones = c.Observaciones,
+                FechaCreacion = c.FechaCreacion,
+                FechaModificacion = c.FechaModificacion,
+                Detalles = c.ComprasDetalle.Select(cd => new CompraDetalleDto
+                {
+                    Id = cd.Id,
+                    CompraId = cd.CompraId,
+                    DetalleProductoId = cd.DetalleProductoId,
+                    ProductoCodigo = cd.DetalleProducto?.Codigo,
+                    ProductoNombre = cd.DetalleProducto?.Producto?.Nombre,
+                    MarcaNombre = cd.DetalleProducto?.Marca?.Nombre,
+                    CategoriaNombre = cd.DetalleProducto?.Categoria?.Nombre,
+                    Cantidad = cd.Cantidad,
+                    PrecioUnitario = cd.PrecioUnitario,
+                    Subtotal = cd.Subtotal
+                }).ToList()
+            }).ToList();
+
+            _logger.LogInformation("Se obtuvieron {Count} compras activas con detalles", comprasDto.Count);
+            return comprasDto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener compras activas: {Message}", ex.Message);
+            _logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
             return new List<CompraDto>();
         }
     }

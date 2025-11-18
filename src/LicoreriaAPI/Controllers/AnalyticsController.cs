@@ -93,16 +93,25 @@ public class AnalyticsController : ControllerBase
     /// <summary>
     /// Obtener ventas agregadas por producto
     /// </summary>
+    /// <remarks>
+    /// Retorna ventas agregadas por producto. Si se proporciona `productoId`, filtra por ese producto específico.
+    /// Si no se proporciona, retorna todos los productos ordenados por total de ventas.
+    /// </remarks>
+    /// <param name="productoId">ID del producto específico (opcional). Si no se proporciona, retorna todos los productos.</param>
+    /// <param name="fechaInicio">Fecha de inicio del rango (opcional)</param>
+    /// <param name="fechaFin">Fecha de fin del rango (opcional)</param>
+    /// <param name="top">Número máximo de resultados (por defecto: 20)</param>
     [HttpGet("ventas/por-producto")]
     [ProducesResponseType(typeof(List<VentasPorProductoDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> VentasPorProducto(
+        [FromQuery] int? productoId = null,
         [FromQuery] DateTime? fechaInicio = null,
         [FromQuery] DateTime? fechaFin = null,
         [FromQuery] int top = 20)
     {
         try
         {
-            var resultados = await _analyticsService.VentasPorProductoAsync(fechaInicio, fechaFin, top);
+            var resultados = await _analyticsService.VentasPorProductoAsync(productoId, fechaInicio, fechaFin, top);
             return Ok(resultados);
         }
         catch (Exception ex)
@@ -115,15 +124,23 @@ public class AnalyticsController : ControllerBase
     /// <summary>
     /// Obtener ventas agregadas por categoría
     /// </summary>
+    /// <remarks>
+    /// Retorna ventas agregadas por categoría. Si se proporciona `categoriaId`, filtra por esa categoría específica.
+    /// Si no se proporciona, retorna todas las categorías ordenadas por total de ventas.
+    /// </remarks>
+    /// <param name="categoriaId">ID de la categoría específica (opcional). Si no se proporciona, retorna todas las categorías.</param>
+    /// <param name="fechaInicio">Fecha de inicio del rango (opcional)</param>
+    /// <param name="fechaFin">Fecha de fin del rango (opcional)</param>
     [HttpGet("ventas/por-categoria")]
     [ProducesResponseType(typeof(List<VentasPorCategoriaDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> VentasPorCategoria(
+        [FromQuery] int? categoriaId = null,
         [FromQuery] DateTime? fechaInicio = null,
         [FromQuery] DateTime? fechaFin = null)
     {
         try
         {
-            var resultados = await _analyticsService.VentasPorCategoriaAsync(fechaInicio, fechaFin);
+            var resultados = await _analyticsService.VentasPorCategoriaAsync(categoriaId, fechaInicio, fechaFin);
             return Ok(resultados);
         }
         catch (Exception ex)
@@ -136,16 +153,25 @@ public class AnalyticsController : ControllerBase
     /// <summary>
     /// Obtener ventas agregadas por cliente
     /// </summary>
+    /// <remarks>
+    /// Retorna ventas agregadas por cliente. Si se proporciona `clienteId`, filtra por ese cliente específico.
+    /// Si no se proporciona, retorna todos los clientes ordenados por total de ventas.
+    /// </remarks>
+    /// <param name="clienteId">ID del cliente específico (opcional). Si no se proporciona, retorna todos los clientes.</param>
+    /// <param name="fechaInicio">Fecha de inicio del rango (opcional)</param>
+    /// <param name="fechaFin">Fecha de fin del rango (opcional)</param>
+    /// <param name="top">Número máximo de resultados (por defecto: 20)</param>
     [HttpGet("ventas/por-cliente")]
     [ProducesResponseType(typeof(List<VentasPorClienteDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> VentasPorCliente(
+        [FromQuery] int? clienteId = null,
         [FromQuery] DateTime? fechaInicio = null,
         [FromQuery] DateTime? fechaFin = null,
         [FromQuery] int top = 20)
     {
         try
         {
-            var resultados = await _analyticsService.VentasPorClienteAsync(fechaInicio, fechaFin, top);
+            var resultados = await _analyticsService.VentasPorClienteAsync(clienteId, fechaInicio, fechaFin, top);
             return Ok(resultados);
         }
         catch (Exception ex)
@@ -158,15 +184,23 @@ public class AnalyticsController : ControllerBase
     /// <summary>
     /// Obtener ventas agregadas por empleado
     /// </summary>
+    /// <remarks>
+    /// Retorna ventas agregadas por empleado. Si se proporciona `empleadoId`, filtra por ese empleado específico.
+    /// Si no se proporciona, retorna todos los empleados ordenados por total de ventas.
+    /// </remarks>
+    /// <param name="empleadoId">ID del empleado específico (opcional). Si no se proporciona, retorna todos los empleados.</param>
+    /// <param name="fechaInicio">Fecha de inicio del rango (opcional)</param>
+    /// <param name="fechaFin">Fecha de fin del rango (opcional)</param>
     [HttpGet("ventas/por-empleado")]
     [ProducesResponseType(typeof(List<VentasPorEmpleadoDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> VentasPorEmpleado(
+        [FromQuery] int? empleadoId = null,
         [FromQuery] DateTime? fechaInicio = null,
         [FromQuery] DateTime? fechaFin = null)
     {
         try
         {
-            var resultados = await _analyticsService.VentasPorEmpleadoAsync(fechaInicio, fechaFin);
+            var resultados = await _analyticsService.VentasPorEmpleadoAsync(empleadoId, fechaInicio, fechaFin);
             return Ok(resultados);
         }
         catch (Exception ex)
@@ -226,16 +260,25 @@ public class AnalyticsController : ControllerBase
     /// <summary>
     /// Obtener compras agregadas por proveedor
     /// </summary>
+    /// <remarks>
+    /// Retorna compras agregadas por proveedor. Si se proporciona `proveedorId`, filtra por ese proveedor específico.
+    /// Si no se proporciona, retorna todos los proveedores ordenados por total de compras.
+    /// </remarks>
+    /// <param name="proveedorId">ID del proveedor específico (opcional). Si no se proporciona, retorna todos los proveedores.</param>
+    /// <param name="fechaInicio">Fecha de inicio del rango (opcional)</param>
+    /// <param name="fechaFin">Fecha de fin del rango (opcional)</param>
+    /// <param name="top">Número máximo de resultados (por defecto: 20)</param>
     [HttpGet("compras/por-proveedor")]
     [ProducesResponseType(typeof(List<ComprasPorProveedorDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ComprasPorProveedor(
+        [FromQuery] int? proveedorId = null,
         [FromQuery] DateTime? fechaInicio = null,
         [FromQuery] DateTime? fechaFin = null,
         [FromQuery] int top = 20)
     {
         try
         {
-            var resultados = await _analyticsService.ComprasPorProveedorAsync(fechaInicio, fechaFin, top);
+            var resultados = await _analyticsService.ComprasPorProveedorAsync(proveedorId, fechaInicio, fechaFin, top);
             return Ok(resultados);
         }
         catch (Exception ex)
@@ -248,16 +291,25 @@ public class AnalyticsController : ControllerBase
     /// <summary>
     /// Obtener compras agregadas por producto
     /// </summary>
+    /// <remarks>
+    /// Retorna compras agregadas por producto. Si se proporciona `productoId`, filtra por ese producto específico.
+    /// Si no se proporciona, retorna todos los productos ordenados por total de compras.
+    /// </remarks>
+    /// <param name="productoId">ID del producto específico (opcional). Si no se proporciona, retorna todos los productos.</param>
+    /// <param name="fechaInicio">Fecha de inicio del rango (opcional)</param>
+    /// <param name="fechaFin">Fecha de fin del rango (opcional)</param>
+    /// <param name="top">Número máximo de resultados (por defecto: 20)</param>
     [HttpGet("compras/por-producto")]
     [ProducesResponseType(typeof(List<ComprasPorProductoDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ComprasPorProducto(
+        [FromQuery] int? productoId = null,
         [FromQuery] DateTime? fechaInicio = null,
         [FromQuery] DateTime? fechaFin = null,
         [FromQuery] int top = 20)
     {
         try
         {
-            var resultados = await _analyticsService.ComprasPorProductoAsync(fechaInicio, fechaFin, top);
+            var resultados = await _analyticsService.ComprasPorProductoAsync(productoId, fechaInicio, fechaFin, top);
             return Ok(resultados);
         }
         catch (Exception ex)
